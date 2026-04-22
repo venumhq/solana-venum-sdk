@@ -1,0 +1,50 @@
+{
+  "name": "@venumdev/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Venum Solana execution API",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "publint": "publint",
+    "prepublishOnly": "pnpm build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "venum",
+    "solana",
+    "sdk",
+    "defi",
+    "dex",
+    "swap",
+    "agent",
+    "trading"
+  ],
+  "author": "Venum <hello@venum.dev>",
+  "license": "MIT",
+  "homepage": "https://www.venum.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/venumhq/solana-venum-sdk.git"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "publint": "^0.3.18",
+    "typescript": "^5.9.2"
+  }
+}
