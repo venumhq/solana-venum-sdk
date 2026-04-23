@@ -20,6 +20,9 @@ import type {
   PricesBatchResponse,
   QuoteRequest,
   QuoteResponse,
+  QuoteStreamErrorPayload,
+  QuoteStreamMessage,
+  QuoteStreamRequest,
   RetryOptions,
   SearchResponse,
   SendResponse,
@@ -103,6 +106,11 @@ export interface TxIteratorOptions extends StreamOptions {
 /** Callback-mode options for `streamBalanceHistory`. */
 export interface BalanceHistoryStreamOptions extends StreamOptions {
   onEvent: (message: BalanceHistoryStreamMessage) => void;
+}
+
+/** Callback-mode options for `streamQuote`. */
+export interface QuoteStreamOptions extends StreamOptions {
+  onEvent: (message: QuoteStreamMessage) => void;
 }
 
 /** Options for `waitForTx`. */
@@ -490,6 +498,35 @@ export class VenumClient {
     }
   }
 
+  /**
+   * Callback-mode quote stream. Server recomputes at `tickHz` (default 2 Hz)
+   * and pushes a `quote` event only when `bestRoute.outputAmount` moves past
+   * `minMoveBps` (default 1). The initial `quote` event is emitted
+   * synchronously on connect. An initial 404/503 from the quote pipeline
+   * arrives as a terminal `error` event and the stream closes.
+   *
+   * Defaults to no reconnect because reconnecting always re-runs the initial
+   * full quote — callers should decide when to start a fresh subscription.
+   */
+  async streamQuote(request: QuoteStreamRequest, opts: QuoteStreamOptions): Promise<void> {
+    for await (const msg of this.iterateQuote(request, opts)) {
+      opts.onEvent(msg);
+    }
+  }
+
+  /** Iterator-mode quote stream. */
+  async *iterateQuote(
+    request: QuoteStreamRequest,
+    opts: StreamOptions = {},
+  ): AsyncGenerator<QuoteStreamMessage, void, void> {
+    const qs = quoteStreamQueryString(request);
+    const streamOpts = { ...opts, reconnectDelayMs: opts.reconnectDelayMs ?? 0 };
+    for await (const msg of this.iterateSse(`/v1/quote/stream?${qs}`, streamOpts)) {
+      const typed = toQuoteStreamMessage(msg);
+      if (typed) yield typed;
+    }
+  }
+
   /** Callback-mode balance-history stream (emits progress → points → complete). */
   async streamBalanceHistory(params: BalanceHistoryParams, opts: BalanceHistoryStreamOptions): Promise<void> {
     for await (const msg of this.iterateBalanceHistory(params, opts)) {
@@ -694,6 +731,18 @@ function priceStreamQueryString(tokens: string[], opts: { includeOptimistic?: bo
   return qs.toString();
 }
 
+function quoteStreamQueryString(request: QuoteStreamRequest): string {
+  const qs = new URLSearchParams({
+    inputMint: request.inputMint,
+    outputMint: request.outputMint,
+    amount: request.amount,
+  });
+  if (request.slippageBps !== undefined) qs.set('slippageBps', String(request.slippageBps));
+  if (request.tickHz !== undefined) qs.set('tickHz', String(request.tickHz));
+  if (request.minMoveBps !== undefined) qs.set('minMoveBps', String(request.minMoveBps));
+  return qs.toString();
+}
+
 function isTerminalTxStatus(status: TxEventPayload['status'], requested: TxEvent[]): boolean {
   if (status === 'failed' || status === 'timeout' || status === 'verify-timeout') return true;
   return (requested as string[]).includes(status);
@@ -705,6 +754,19 @@ function toPriceMessage(raw: SseRawMessage): PriceStreamMessage | null {
       return { type: 'ready', ts: extractTs(raw.data) };
     case 'price':
       return { type: 'price', price: raw.data as TokenPrice };
+    case 'heartbeat':
+      return { type: 'heartbeat', ts: extractTs(raw.data) };
+    default:
+      return null;
+  }
+}
+
+function toQuoteStreamMessage(raw: SseRawMessage): QuoteStreamMessage | null {
+  switch (raw.event) {
+    case 'quote':
+      return { type: 'quote', quote: raw.data as QuoteResponse };
+    case 'error':
+      return { type: 'error', payload: raw.data as QuoteStreamErrorPayload };
     case 'heartbeat':
       return { type: 'heartbeat', ts: extractTs(raw.data) };
     default:

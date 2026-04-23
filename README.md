@@ -166,6 +166,7 @@ Every method below maps 1-to-1 to an HTTP endpoint. For the full request/respons
 | `streamPools(opts)` | `iteratePools(opts)` | `GET /v1/stream/pools` |
 | `streamTx(signatures, opts)` | `iterateTx(signatures, opts)` | `GET /v1/stream/tx` |
 | `streamBalanceHistory(params, opts)` | `iterateBalanceHistory(params, opts)` | `GET /v1/stream/balance-history` |
+| `streamQuote(request, opts)` | `iterateQuote(request, opts)` | `GET /v1/quote/stream` |
 
 ## Streams
 
@@ -187,6 +188,29 @@ await venum.streamPrices(['SOL', 'JITOSOL'], {
     }
   },
 });
+```
+
+### Quote stream
+
+Live ranked quote, server-recomputed at 2 Hz (default) and pushed only when
+`bestRoute.outputAmount` moves past `minMoveBps`. Route may change between
+emissions — see the [endpoint docs](https://docs.venum.dev/api/stream-quote)
+for the full behavior.
+
+```ts
+await venum.streamQuote(
+  { inputMint: 'SOL', outputMint: 'USDC', amount: '1000000000', slippageBps: 100 },
+  {
+    onError: (msg) => console.warn('reconnecting:', msg),
+    onEvent: (msg) => {
+      switch (msg.type) {
+        case 'quote':     console.log(msg.quote.bestRoute.outputAmount); break;
+        case 'error':     console.error(msg.payload.error); break;
+        case 'heartbeat': /* keep-alive */ break;
+      }
+    },
+  },
+);
 ```
 
 ### Iterator mode

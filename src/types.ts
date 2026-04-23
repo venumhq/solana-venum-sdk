@@ -437,6 +437,29 @@ export type PriceStreamMessage =
   | { type: 'price'; price: TokenPrice }
   | { type: 'heartbeat'; ts: number };
 
+export interface QuoteStreamRequest {
+  inputMint: string;
+  outputMint: string;
+  amount: string;
+  slippageBps?: number;
+  /** Server tick rate in Hz. Default 2, clamped to [1, 5]. */
+  tickHz?: number;
+  /** Minimum change in bestRoute.outputAmount (basis points) required to emit a new quote event. Default 1. */
+  minMoveBps?: number;
+}
+
+export interface QuoteStreamErrorPayload {
+  error: string;
+  status: number;
+  inputMint: string;
+  outputMint: string;
+}
+
+export type QuoteStreamMessage =
+  | { type: 'quote'; quote: QuoteResponse }
+  | { type: 'error'; payload: QuoteStreamErrorPayload }
+  | { type: 'heartbeat'; ts: number };
+
 export type PoolStreamMessage =
   | { type: 'ready'; ts: number }
   | { type: 'new-pool'; pool: NewPoolEventPayload }

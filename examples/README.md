@@ -46,6 +46,7 @@ Some examples additionally require:
 | [`16-error-handling.ts`](./16-error-handling.ts) | Mapping 401/403/429/network errors to UX messages |
 | [`17-retry-and-abort.ts`](./17-retry-and-abort.ts) | Custom retry policy, disable retries, `AbortSignal` patterns |
 | [`18-amounts.ts`](./18-amounts.ts) | Convert between human decimals and base-unit strings |
+| [`19-stream-quote.ts`](./19-stream-quote.ts) | Live quote stream — 2 Hz server recompute, push-on-change |
 
 ## Notes
 
