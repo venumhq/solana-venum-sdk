@@ -46,7 +46,7 @@ import type {
 } from './types.js';
 
 const DEFAULT_BASE_URL = 'https://api.venum.dev';
-const SDK_VERSION = '0.1.0';
+const SDK_VERSION = '0.2.0';
 const DEFAULT_USER_AGENT = `@venumdev/sdk/${SDK_VERSION}`;
 const DEFAULT_RETRY_STATUSES = [429, 502, 503, 504];
 
